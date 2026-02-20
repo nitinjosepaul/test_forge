@@ -1,0 +1,179 @@
+================================================================================
+TEST FORGE - PLUGIN ARCHITECTURE
+================================================================================
+
+WHAT CHANGED & WHY
+================================================================================
+The original Test Forge hardcoded Active Directory concepts throughout the
+framework core (ServerManager, BaseTest, GUI).  This meant adding a second
+domain (e.g. Linux servers, cloud infra) required forking the whole project.
+
+The plugin architecture separates concerns into two clean zones:
+
+  FRAMEWORK CORE      Knows nothing about AD, PowerShell, or any specific
+  (library/core/)     technology.  Defines contracts (PluginBase), discovers
+                      plugins (PluginRegistry), runs tests (TestExecutor).
+
+  PLUGINS             Self-contained packages that own ALL technology-specific
+  (plugins/<name>/)   code.  The AD plugin owns DomainController, CAInterface,
+                      PowerShell execution, ADBaseTest, and AD test suites.
+
+The GUI only imports from the framework core.  It never sees ADPlugin directly.
+
+================================================================================
+NEW DIRECTORY STRUCTURE
+================================================================================
+
+test_forge/
+  ├── start.py                          # Entry point (unchanged API)
+  │
+  ├── library/                          # FRAMEWORK CORE (technology-agnostic)
+  │   ├── core/
+  │   │   ├── plugin_base.py            # PluginBase ABC + PluginMetadata
+  │   │   ├── plugin_registry.py        # Auto-discover plugins from plugins/
+  │   │   ├── exceptions.py             # PluginNotFoundError, PluginLoadError
+  │   │   └── test/
+  │   │       ├── base_test.py          # Thin BaseTest (no AD dependencies)
+  │   │       └── test_executor.py      # Runs test_ methods, tracks results
+  │   └── ui/
+  │       └── main.py                   # Plugin-aware Tkinter GUI
+  │
+  └── plugins/                          # PLUGIN PACKAGES
+      └── ad_plugin/                    # Active Directory plugin
+          ├── plugin.py                 # ← Framework entry point (ADPlugin class)
+          ├── powershell.py             # PowerShell / PowerShellRemote
+          ├── suite_discovery.py        # Scans test_suite/ for Test* classes
+          ├── device/
+          │   ├── servers.py            # ADServer, DomainController, CA, MemberServer
+          │   └── server_manager.py     # Reads server.ini, builds server objects
+          ├── interface/
+          │   ├── ad_interface.py       # Generic AD commands
+          │   ├── dc_interface.py       # DC-specific commands
+          │   └── ca_interface.py       # CA-specific commands
+          └── test_suite/
+              ├── ad_base_test.py       # ADBaseTest (enriches core BaseTest)
+              ├── test_domain_validation.py
+              └── test_ca_validation.py
+
+================================================================================
+THE PLUGIN CONTRACT  (plugin_base.py)
+================================================================================
+
+Every plugin implements five methods:
+
+  metadata          Returns PluginMetadata describing the plugin to the GUI
+                    (name, id, version, requires_config_file, etc.)
+
+  load(ini_path)    Called once. Plugin initialises its infrastructure
+                    (e.g. parse server.ini, build server objects).
+
+  get_test_suites() Returns list of available test suite display names.
+
+  run_suite(        Executes a named suite. Framework passes callbacks
+    suite_name,     so the plugin can stream logs and results to the GUI
+    config_path,    without knowing anything about Tkinter.
+    log_callback,
+    result_callback
+  )
+
+  unload()          Optional cleanup.
+
+================================================================================
+HOW THE GUI USES PLUGINS
+================================================================================
+
+1. On startup:
+     registry = PluginRegistry("plugins/")
+     registry.discover()                 # scans plugins/*/plugin.py
+
+2. User selects plugin from dropdown:
+     meta = registry.get_metadata("ad_plugin")
+     # GUI shows/hides config file picker based on meta.requires_config_file
+
+3. User clicks "Load Plugin":
+     plugin = registry.get_plugin("ad_plugin")
+     plugin.load("server.ini")
+     suites = plugin.get_test_suites()   # populate suite dropdown
+
+4. User clicks "Run Suite":
+     summary = plugin.run_suite(
+         "Domain Validation",
+         config_path="ActiveDirectory_BDPK5.xml",
+         log_callback=...,               # GUI log appender
+         result_callback=...,            # GUI results table appender
+     )
+
+The GUI never imports DomainController, PowerShell, or ADBaseTest.
+
+================================================================================
+HOW THE AD PLUGIN WORKS INTERNALLY
+================================================================================
+
+ADPlugin.load()
+  └── ServerManager.load("server.ini")
+        └── Creates DomainController / CA / MemberServer objects
+              └── Each server gets PowerShell or PowerShellRemote
+                    based on execution_host flag
+
+ADPlugin.run_suite("Domain Validation", config_path, log_cb, result_cb)
+  └── Looks up TestDomainValidation class
+  └── Instantiates it, injects _server_manager + _config_path
+  └── TestExecutor(suite, log_cb, result_cb).run()
+        └── Calls suite.setup()     → ADBaseTest parses XML
+        └── Calls each test_ method
+        └── Reports PASS/FAIL/ERROR via result_callback
+        └── Calls suite.teardown()
+        └── Returns summary dict
+
+================================================================================
+ADDING A NEW AD TEST SUITE
+================================================================================
+
+Create  plugins/ad_plugin/test_suite/test_my_feature.py
+
+  from plugins.ad_plugin.test_suite.ad_base_test import ADBaseTest
+
+  class TestMyFeature(ADBaseTest):
+      def test_something(self):
+          result = self.primary_dc.ad_interface.get_ad_users()
+          assert len(result) > 0, "No users found"
+
+That's it. Auto-discovered on next run. No changes to the framework core.
+
+================================================================================
+ADDING A COMPLETELY NEW PLUGIN  (e.g. Linux servers)
+================================================================================
+
+1. Create  plugins/linux_plugin/plugin.py
+
+2. Define:
+     class LinuxPlugin(PluginBase):
+         @property
+         def metadata(self): return PluginMetadata(name="Linux Infra", id="linux_plugin", ...)
+         def load(self, ini_path): ...
+         def get_test_suites(self): ...
+         def run_suite(self, ...): ...
+
+3. Put all Linux-specific code (SSH client, server classes, test suites) inside
+   plugins/linux_plugin/  - the framework never touches it.
+
+4. Restart the app.  The new plugin appears in the GUI dropdown automatically.
+
+No changes needed to the framework core or the GUI.
+
+================================================================================
+KEY DESIGN PRINCIPLES APPLIED
+================================================================================
+
+  Dependency Inversion    Core defines PluginBase; plugins depend on core,
+                          not vice versa.
+
+  Open/Closed             Add new plugins without modifying existing code.
+
+  Single Responsibility   Framework: discovery + execution orchestration.
+                          Plugin: technology-specific logic + tests.
+
+  Callback Injection      Plugins get log/result callbacks so they have zero
+                          dependency on Tkinter.
+
+================================================================================
