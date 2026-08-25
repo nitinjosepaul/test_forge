@@ -34,3 +34,23 @@ log/
 
 # Configurations
 config.py
+
+# PyCharm / JetBrains IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# pytest
+.pytest_cache/
+htmlcov/
+pytest.ini
+
+# mypy
+.mypy_cache/
+
+# OS-specific
+.DS_Store
+Thumbs.db
+desktop.ini
