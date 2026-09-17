@@ -1,0 +1,27 @@
+SPRINT 5 — FLAKY DETECTOR: IMPACT, REPORTING, CLI + CI GATE
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Complete the flaky detector pipeline: roll up per-test classifications into
+a suite-level gate decision, generate human/machine-readable reports, wrap
+it all in a single CLI, and wire it into a GitHub Actions workflow that
+enforces the gate.
+
+TASKS
+1. [3 pts] Implement framework/impact.py (SuiteImpact, PASS/WARN/FAIL gate)
+   - Roll up per-test labels into a suite-level score.
+   - Map score to gate outcome with a human-readable rationale.
+
+2. [3 pts] Implement framework/reporting.py (JSON/CSV ranked table +
+   summary)
+   - Produce a suite summary block and a ranked per-test table.
+   - Keep the output easy to inspect manually and in CI.
+
+3. [2 pts] Implement framework/cli.py (single command: normalize ->
+   classify -> impact -> report)
+   - One entry point, simple flags (--history-dir, --last-n).
+
+4. [2 pts] Add flaky-gate.yml: run the CLI against accumulated history and
+   enforce the gate in CI
+   - Fail or warn the workflow based on the gate outcome.
+   - Add a simple job summary output for readability.

@@ -1,0 +1,33 @@
+SPRINT 2 — POM -> PLUGIN CONVERSION + FLAKINESS DESIGN
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Convert the existing Selenium Page Object Model code into the first (and
+only, for now) plugin: plugins/selenium_pom. Then deliberately design both
+real and engineered flakiness into it so the detector has meaningful signal
+to work with later.
+
+TASKS
+1. [3 pts] Move resource/page_object_model/{base,pages,workflows,tests}
+   into plugins/selenium_pom/
+   - Fix all import paths for the new location.
+   - Add a plugin-local conftest.py (driver fixture, browser option).
+   - Verify all existing POM tests still pass after the move.
+
+2. [3 pts] Repoint utilities and drop the plugin's own logger.py
+   - Repoint utilities/{test_status.py,screenshot.py} to use core LogManager.
+   - Import LogManager from core.util.log_manager instead of a local logger.
+   - Confirm no plugin code still references the old
+     resource/page_object_model path.
+   - Run the full plugin suite locally to confirm a clean pass.
+
+3. [2 pts] Add 2-3 engineered flaky dummy tests
+   - Use controlled randomness or sleep-based race conditions.
+   - Clearly comment each one as intentionally engineered.
+   - Aim for a mix that will plausibly land in different flaky bands
+     (Stable/Suspect/Flaky).
+
+4. [2 pts] Identify and adjust 1-2 real Selenium steps to be genuinely
+   timing-sensitive
+   - Leave or loosen a wait so intermittent real failures can occur.
+   - Document why each one is expected to be flaky.

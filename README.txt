@@ -1,348 +1,433 @@
 ================================================================================
-TEST FORGE FRAMEWORK - COMPACT SUMMARY
+TEST FORGE — FLAKY TEST DETECTOR + AUTOMATION POC
 ================================================================================
 
-QUICK OVERVIEW
+WHAT THIS PROJECT IS NOW
 ================================================================================
-Test Forge is a Python-based Active Directory testing framework with a GUI that
-automates validation of AD infrastructure (Domain Controllers, Certificate 
-Authorities, Member Servers).
+test_forge started as a Python/Tkinter Active Directory testing framework.
+It is being repurposed into a pytest-first automation + analytics POC whose
+primary goal is:
 
-================================================================================
-ARCHITECTURE AT A GLANCE
-================================================================================
+  1. Rebuild deep Python fluency
+  2. Build a deterministic Flaky Test Detector (the core differentiator)
+  3. Learn GitHub Actions from scratch and use it to generate real test
+     run history
+  4. Add light API automation and DB validation later
+  5. Produce an interview-ready portfolio piece (architecture + demo + docs)
 
-GUI Layer (Tkinter)
-  - Test selection & execution UI
-  - Real-time log viewer
-  - Status display
-         |
-         v
-Test Execution Layer
-  - Auto-discover test suites
-  - Run test methods sequentially
-  - Track PASS/FAIL/ERROR results
-         |
-         v
-Server & Interface Layer
-  - ServerManager (manages all servers)
-  - DomainController, CA, MemberServer objects
-  - Command interfaces (ADInterface, DCInterface)
-         |
-         v
-PowerShell Execution Layer
-  - Local execution (PowerShell class)
-  - Remote execution (PowershellRemote class)
-         |
-         v
-Windows PowerShell / AD Commands
+The old AD/Tkinter code under `library/` is NOT part of this direction. It is
+excluded from pytest discovery and left in place only until it is deleted.
+It is not migrated, not turned into a plugin, and not maintained further.
 
 ================================================================================
-CORE COMPONENTS
+GOAL
 ================================================================================
-
-1. CONFIGURATION (config.py)
-   - Global paths and constants
-   - Project directory structure
-   - Execution status definitions
-
-2. SERVERS (library/setup/device/)
-   - ADServer - Base server class
-   - DomainController - DC-specific logic
-   - CertificateAuthority - CA server
-   - MemberServer - Regular member server
-   - ServerManager - Orchestrates all servers
-
-3. INTERFACES (library/setup/interface/)
-   - ADInterface - Generic AD commands
-   - DCInterface - Domain Controller commands
-   - CAInterface - Certificate Authority commands
-   - Maps PowerShell commands to Python methods
-
-4. POWERSHELL EXECUTION (library/util/powershell.py)
-   - PowerShell - Local command execution
-   - PowershellRemote - Remote command execution via Invoke-Command
-   - Parses output to Python dicts
-
-5. TEST FRAMEWORK (library/test/)
-   - BaseTest - Base class for all test suites
-   - TestExecutor - Auto-discovers and executes tests
-   - test_suite/ - Individual test suite files (auto-discovered)
-
-6. UI (library/ui/main.py)
-   - ADInstall - Main Tkinter application
-   - File selection, test dropdown, start button
-   - Real-time log display
-   - Status bar with execution info
-
-7. UTILITIES (library/util/)
-   - parser.py - Parse XML/INI configuration files
-   - powershell.py - PowerShell command execution
-   - log.py - Logging system with file + GUI handlers
-   - exception.py - Custom exception types
+Rebuild Python fluency and interview readiness through a final, focused
+attempt built around:
+  - a pytest-first plugin framework
+  - the Selenium POM plugin as the sole active test source (used to generate
+    real + engineered flaky signal)
+  - GitHub Actions learned from scratch, used to generate run history and
+    later to gate the pipeline
+  - a deterministic flaky test detector as the primary differentiator
+  - API automation and DB validation added later, deliberately kept light
 
 ================================================================================
-CONFIGURATION FILES
+TIMELINE
 ================================================================================
+~3.5 months total: 8 sprints x 2 weeks x 10 story points per sprint.
 
-SERVER.INI - Infrastructure Setup
--------------------------------------
-[Domain Controller 1]
-    hostname = BDPK6DOMCTRL01
-    ip = 192.168.1.1
-    execution_host = true
-    primary = true
-
-[Domain Controller 2]
-    hostname = BDPK6DOMCTRL02
-    ip = 192.168.1.2
-    execution_host = false
-    primary = false
-
-[Certificate Authority]
-    hostname = BDPK6CERTAUTH01
-    ip = 192.168.1.3
-
-[Member Server]
-    hostname = BDPK6WPMASM01
-    ip = 192.168.1.4
-
-Key Concepts:
-- execution_host: The server where test commands execute locally
-- primary: Primary domain controller designation
-
-
-ACTIVEDIRECTORY_BDPK5.XML - AD Configuration
--------------------------------------
-Defines:
-- Domain name & NetBIOS
-- User accounts with roles
-- Organizational Units (OUs)
-- Security groups
-- Certificate Authority setup
-- DNS and NTP configuration
+10 points/sprint (not 14) is a deliberate choice to leave breathing room for
+pending work, leave days, and mid-course clarification — this is meant to be
+sustainable, not packed to full capacity.
 
 ================================================================================
-EXECUTION FLOW
+PRIORITY ORDER (FINALIZED)
 ================================================================================
-
-1. User runs: python start.py
-   => ADInstall GUI launches
-
-2. User selects XML config file
-   => Parsed and validated
-
-3. User selects test suite from dropdown
-   => TestExecutor discovered available test suites
-
-4. User clicks "Start"
-   => Test runs in background thread:
-      a) ServerManager loads servers from INI
-      b) Test suite class instantiated with servers
-      c) setup() method runs (parses XML)
-      d) Each test_* method executes in order
-      e) Results tracked (PASS/FAIL/ERROR)
-      f) GUI updated with status & logs
-
-5. Test completes
-   => Status bar shows execution time
-      Test results logged to file
+1. Minimal pytest foundation (just enough to run something real)
+2. Convert resource/page_object_model into plugins/selenium_pom/
+   (the only active plugin initially)
+3. Design real + engineered flakiness into that plugin
+4. Learn GitHub Actions and use it to generate 15-20 historical JUnit runs
+5. Build the flaky detector (normalize -> classify -> impact -> report)
+   against real accumulated history
+6. Wire the detector into CI as a gate
+7. Add API automation (light)
+8. Add DB validation (light)
+9. Harden, document, and prepare the showcase/demo
 
 ================================================================================
-TEST SUITE STRUCTURE
+SCOPE
 ================================================================================
-
-CREATING A TEST SUITE
-File: library/test/test_suite/test_custom.py
-
-from library.test.test_suite.base_test import BaseTest
-
-class TestCustom(BaseTest):
-    def setup(self):
-        super().setup()
-        # Optional setup
-        
-    def test_verify_domain_name(self):
-        """Test method (auto-discovered)"""
-        domain = self.primary_dc.ad_interface.get_ad_root_domain_name()
-        expected = self.adinstall_dict['Config']['Park']['ActiveDirectory']['DomainName']
-        assert domain == expected, f"Domain mismatch"
-        
-    def test_verify_dc_count(self):
-        """Another test method"""
-        # Access servers via self.primary_dc, self.secondary_dc, self.ca, self.ms
-        pass
-
-
-AUTO-DISCOVERY RULES
-- File must start with 'test_'
-- Class must start with 'Test'
-- Class must inherit from 'BaseTest'
-- Test methods must start with 'test_'
+Core:                 pytest framework architecture, fixtures, hooks,
+                       logging, artifacts
+Primary learning:      Python fluency, framework/plugin design, flaky test
+                       analytics, GitHub Actions (new skill)
+Secondary (light):     API automation and DB validation, deliberately shallow
+Detector data source:  Selenium POM plugin only — no AD plugin, no separate
+                       dummy-only harness
+Not the focus:         heavy UI automation, deep DB framework engineering,
+                       or migrating/preserving AD code
 
 ================================================================================
-KEY DESIGN PATTERNS
+KEY DECISIONS LOCKED IN
 ================================================================================
-
-PATTERN              USAGE
-------               -----
-Strategy             Choose PowerShell vs PowershellRemote execution
-Factory              Auto-discover and instantiate test suites
-Template Method      BaseTest defines test skeleton
-Dependency Injection Pass server instances to test classes
-Observer             GUI callbacks for test status updates
-Singleton            Single Log instance for whole app
-
-================================================================================
-SERVER ACCESS IN TESTS
-================================================================================
-
-Access server instances:
-  self.primary_dc              # Primary Domain Controller
-  self.secondary_dc            # Secondary Domain Controller
-  self.ca                      # Certificate Authority
-  self.ms                      # Member Server
-
-Execute commands:
-  result = self.primary_dc.powershell.run_command("Get-ADUser -Filter *")
-
-Use interfaces:
-  domain = self.primary_dc.ad_interface.get_ad_root_domain_name()
-  forest = self.primary_dc.ad_interface.get_adforest()
-
-Access configuration:
-  self.adinstall_dict          # Parsed ActiveDirectory_BDPK5.xml
+- AD code (library/) is not migrated and not a plugin. It is simply excluded
+  from pytest discovery (via testpaths) and left as dead code to be deleted
+  later. No sprint time is spent on it.
+- Only one plugin exists early on: plugins/selenium_pom/, converted from
+  resource/page_object_model. api_plugin and db_validation are not
+  scaffolded until their own sprints (6 and 7).
+- Flakiness is both real and engineered:
+    * Real: 1-2 existing Selenium steps are deliberately left
+      timing-sensitive (e.g. no explicit wait) so genuine intermittent
+      failures occur across runs.
+    * Engineered: 2-3 small dummy tests use controlled randomness or
+      sleep-based races, clearly commented as intentional, to guarantee all
+      three labels (Stable/Suspect/Flaky) show up reliably in a demo.
+- History generation target: 15-20 historical runs, no more — enough for
+  meaningful fail-rate/trend math without taking long to generate.
+- History generation mechanism: a GitHub Actions workflow using a matrix
+  strategy — one workflow run spins up N matrix jobs, each executing the
+  selenium_pom suite once and uploading its own junit-<run>.xml artifact. An
+  aggregation job then downloads all matrix artifacts and bundles them into
+  artifacts/pytest-runs/ for the detector to consume. This workflow is also
+  the vehicle for learning GitHub Actions itself.
+- CI experience assumption: no prior GitHub Actions experience — the plan
+  budgets explicit time to learn the fundamentals rather than assuming
+  familiarity.
 
 ================================================================================
-EXECUTION STRATEGIES
+ARCHITECTURE
 ================================================================================
-
-LOCAL EXECUTION (Execution Host)
-  PowerShell() => Subprocess execution on local machine
-
-REMOTE EXECUTION
-  PowershellRemote("hostname") => Invoke-Command to remote PowerShell
-
-Selection: Automatic based on 'execution_host' flag in server.ini
-
-================================================================================
-TEST RESULT TYPES
-================================================================================
-
-STATUS    MEANING
-------    -------
-PASS      Test completed, all assertions passed
-FAIL      AssertionError raised (expected failure)
-ERROR     Unexpected exception raised
-
-================================================================================
-FILE ORGANIZATION
-================================================================================
-
 test_forge/
-  ├── start.py                          # Entry point
-  ├── config.py                         # Global configuration
-  ├── server.ini                        # Server definitions
-  ├── library/
-  │   ├── setup/
-  │   │   ├── device/                   # Server classes
-  │   │   ├── interface/                # Command interfaces
-  │   │   └── server_manager.py
-  │   ├── test/
-  │   │   ├── test_executor.py          # Orchestrator
-  │   │   └── test_suite/               # Test files (auto-discovered)
-  │   ├── ui/
-  │   │   └── main.py                   # Tkinter GUI
-  │   └── util/
-  │       ├── parser.py, powershell.py, log.py, exception.py
-  ├── resource/
-  │   └── ActiveDirectory_BDPK5.xml     # AD config
-  ├── log/                              # Execution logs
-  └── UNIT_TEST.py                      # Testing utilities
+  |-- pyproject.toml / pytest.ini         <- testpaths excludes library/ (AD code)
+  |-- conftest.py                         <- root fixtures, artifact path, run metadata
+  |-- core/
+  |   `-- util/
+  |       `-- log_manager.py              <- shared logging infra
+  |-- framework/
+  |   |-- normalize.py                    <- JUnit XML ingestion
+  |   |-- classify.py                     <- flaky rules + confidence
+  |   |-- impact.py                       <- suite gate logic
+  |   |-- reporting.py                    <- JSON/CSV/HTML outputs
+  |   |-- cli.py                          <- analysis entry point
+  |   `-- ai_summary.py (optional)        <- narrative overlay only
+  |-- plugins/
+  |   |-- selenium_pom/                   <- converted from resource/page_object_model
+  |   |                                      (sole active plugin early on)
+  |   |-- api_plugin/                     <- added later (Sprint 6)
+  |   `-- db_validation/                  <- added later (Sprint 7)
+  |-- artifacts/
+  |   `-- pytest-runs/                    <- 15-20 JUnit XML reports from GitHub Actions
+  `-- .github/
+      `-- workflows/
+          |-- generate-history.yml        <- matrix workflow: N runs -> N JUnit artifacts -> aggregated
+          `-- flaky-gate.yml              <- runs framework.cli against history, enforces gate
+
+  library/  (AD code) -- excluded from pytest discovery, kept only until deletion.
 
 ================================================================================
-COMMON OPERATIONS
+TECHNICAL DIRECTION
 ================================================================================
 
-ADD NEW TEST SUITE
-1. Create library/test/test_suite/test_feature.py
-2. Define class TestFeature(BaseTest)
-3. Add def test_*(self) methods
-4. Auto-discovered on next run
+PYTEST CORE
+- pytest is the only execution engine.
+- Root conftest.py owns shared fixtures: run_id, artifact directory, session
+  logger, environment selection.
+- Plugin-local conftest.py for domain fixtures: Selenium driver fixture
+  first (only plugin fixture needed initially); API client/DB connection
+  fixtures added later.
+- Use pytest hooks for run metadata: pytest_addoption, pytest_configure,
+  pytest_collection_modifyitems, pytest_runtest_makereport,
+  pytest_sessionfinish.
+- Standardize output using --junitxml and a small metadata sidecar.
+- testpaths explicitly points at plugins/ and framework/ tests only —
+  library/ (AD code) is never discovered.
 
-ADD NEW POWERSHELL COMMAND
-1. Add method to appropriate Interface class
-2. Use self.powershell_obj.run_command("PowerShell command")
-3. Parse and return result
-4. Call from test via server interface
+CORE
+- Promote LogManager into core/util/log_manager.py.
+- Keep core reusable and framework-agnostic — shared infra only, not
+  automation business logic.
 
-ADD NEW SERVER TYPE
-1. Create class extending ADServer
-2. Add section to server.ini
-3. Register in ServerManager._initialize_servers()
-4. Create interface if needed
+FRAMEWORK (the flaky detector)
+- normalize.py: parse last N JUnit XML reports into canonical run records.
+- classify.py: compute fail rate, rerun recovery, signature variance, trend.
+- impact.py: convert classifications into suite score and PASS/WARN/FAIL gate.
+- reporting.py: generate JSON/CSV/HTML outputs.
+- cli.py: single command to run the analysis pipeline.
+- ai_summary.py: optional narrative layer only; no gate authority.
 
-================================================================================
-EXTENSION OPPORTUNITIES
-================================================================================
+PLUGINS
+- selenium_pom: converted from resource/page_object_model; the only plugin
+  built early. Carries real (timing-sensitive) and engineered (randomized/
+  sleep-based) flaky tests to generate meaningful detector input.
+- api_plugin: added in Sprint 6, practical API coverage, kept simple.
+- db_validation: added in Sprint 7, small DB assertion layer.
+- AD code (library/): not a plugin — excluded from discovery, left for
+  eventual deletion.
 
-- Multi-format configs: JSON, YAML, TOML support
-- Plugin system: Load test suites dynamically
-- Advanced logging: Structured logs, remote logging
-- Parallel execution: Run tests concurrently
-- Reports: HTML, JUnit XML output
-- Monitoring: Performance metrics, health checks
-- Database: Persist test results
-- Retry logic: Handle transient failures
-- Test parameterization: Run same test with different inputs
-
-================================================================================
-TROUBLESHOOTING
-================================================================================
-
-ISSUE                    FIX
------                    ---
-Test not discovered      Check class name starts with 'Test', 
-                         inherits 'BaseTest'
-PowerShell fails         Test command directly in PowerShell
-GUI freezes              Tests should run in separate thread
-Config not found         Verify file path in config.py
-Permission denied        Check write access to log/ directory
-
-================================================================================
-QUICK START
-================================================================================
-
-1. Ensure server.ini and ActiveDirectory_BDPK5.xml exist
-
-2. Run application
-   python start.py
-
-3. In GUI:
-   - Click "Select ADInstall xml" => choose config file
-   - Select test suite from dropdown
-   - Click "Start" => watch logs for results
+GITHUB ACTIONS (new skill area)
+- generate-history.yml: matrix strategy job (run: [1..N], N = 15-20), each
+  matrix job executes pytest plugins/selenium_pom/tests once and uploads its
+  own junit-<run>.xml artifact; an aggregation job downloads all matrix
+  artifacts and writes them into artifacts/pytest-runs/.
+- flaky-gate.yml: separate, simpler workflow added once the detector CLI
+  exists — reads accumulated history, runs framework.cli, and fails/warns
+  the workflow based on the suite gate.
+- Learning scope: triggers (workflow_dispatch, push), jobs/steps, matrix
+  strategy, artifact upload/download, job summaries — treated as genuinely
+  new material, not assumed knowledge.
 
 ================================================================================
-KEY ENTRY POINT
+MODULE-LEVEL IMPLEMENTATION DETAILS
 ================================================================================
 
-start.py
----------
-from library.ui.main import ADInstall
+LOGGING
+- Replace library/util/log.py with core/util/log_manager.py.
+- Use named handlers with add/remove lifecycle.
+- Keep file logging and console logging separate.
+- Make logging usable from pytest fixtures and plugin code.
 
-if __name__ == "__main__":
-    ad_install = ADInstall()
-    ad_install.mainloop()
+SELENIUM POM PLUGIN (built first)
+- Move resource/page_object_model/{base,pages,workflows,tests} into
+  plugins/selenium_pom/.
+- Fix all import paths and add a plugin-local conftest.py (driver fixture,
+  browser option).
+- Verify all existing POM tests still pass after the move before adding
+  anything new.
 
-This simple entry point initializes the ADInstall GUI and starts the 
-event loop. All initialization happens in ADInstall.__init__():
-  - Log system setup
-  - ServerManager initialization (loads servers from INI)
-  - TestExecutor initialization (auto-discovers test suites)
-  - UI widget creation
+DESIGNING FLAKINESS (real + engineered)
+- Real flakiness: identify 1-2 existing steps with weak/missing explicit
+  waits and leave them as-is (or slightly loosen a wait) so genuine
+  timing-based intermittent failures occur across repeated runs.
+- Engineered flakiness: add 2-3 small, clearly commented dummy tests that
+  fail based on controlled randomness (e.g. random.random() < 0.3) or
+  artificial sleep-based races, so the demo reliably produces all three
+  labels regardless of what the real UI does.
+- Keep both kinds clearly distinguishable in code/comments so the interview
+  story is honest: "this one is real timing flakiness, this one is
+  intentionally engineered to demonstrate the classifier."
+
+GITHUB ACTIONS (learned as part of this POC)
+- Start with fundamentals: workflow YAML structure, triggers, jobs, steps,
+  actions/upload-artifact / actions/download-artifact.
+- Build generate-history.yml using a matrix strategy
+  (strategy.matrix.run: [1..N]) so one workflow execution produces N
+  independent JUnit XML artifacts (N = 15-20).
+- Add an aggregation job that depends on the matrix job, downloads all
+  artifacts, and writes them into artifacts/pytest-runs/.
+- Later, add flaky-gate.yml to run framework.cli against the aggregated
+  history and enforce PASS/WARN/FAIL as a workflow outcome.
+
+API AUTOMATION (deferred to Sprint 6, kept light)
+- Use a lightweight client wrapper over requests.Session.
+- Cover auth/login, simple CRUD, negative-path checks, response validation.
+- Keep assertions readable and reusable. Avoid overbuilding a full API
+  framework.
+- Target API and auth mechanism to be explicitly locked at the start of
+  Sprint 6, not assumed in advance.
+
+DB VALIDATION (deferred to Sprint 7, kept light)
+- Keep DB validation simple and targeted.
+- Build helpers for select, insert/update verification, row count/state
+  checks.
+- Use it mainly to confirm API effects or setup/cleanup state.
+- DB engine choice (SQLite recommended) to be explicitly locked at the
+  start of Sprint 7.
+
+FLAKY DETECTOR
+- Input: last N (15-20) JUnit XML reports generated via generate-history.yml.
+- Output: Stable / Suspect / Flaky
+- Deterministic signals: fail rate, rerun recovery, signature count/variance,
+  recent streak, short-term trend.
+- Keep labels and gates explainable.
 
 ================================================================================
-BUILT FOR AD INFRASTRUCTURE VALIDATION WITH EXTENSIBILITY FOR CUSTOM 
-TESTING NEEDS
+FLAKY TEST DETECTOR SPECIFICATION
+================================================================================
+
+PROBLEM
+Unstable tests create noisy failures, rerun waste, and low trust in CI
+results. Standard pass/fail reporting does not give enough signal to act on
+instability.
+
+FINAL PROBLEM STATEMENT
+Design and implement a Python-based flaky test detector that analyzes the
+last N pytest reports and classifies each test as Stable, Suspect, or Flaky
+using deterministic rules over failure rate, rerun recovery behavior, and
+failure signature variance.
+
+LOCKED SCOPE BOUNDARIES
+- Input source: last N pytest result reports (JUnit XML + optional pytest
+  metadata)
+- No multi-framework ingestion in MVP
+- No mandatory AI for classification in MVP
+- Output: suite summary + per-test ranked insights + CI gate signal
+
+WHY THIS SCOPE
+- Simpler than a full distributed validation platform, but still
+  architecture-heavy.
+- Directly useful in real CI pipelines with minimal framework disruption.
+- Strong Staff SDET interview narrative: signal quality, governance, and
+  quality gates.
+
+PROPOSED POC
+Build a reusable framework with:
+- report ingestion and run-history store
+- feature extraction (fail rate, rerun recovery, signature variance, trend)
+- deterministic rule engine for Stable/Suspect/Flaky classification
+- confidence and risk scoring
+- report generation (JSON, CSV, HTML summary)
+- CI quality gates (warn/fail thresholds)
+- optional AI summarization assistant (non-blocking, post-classification)
+
+DATA FLOW
+Last N Pytest Reports -> Ingestion Layer -> Normalization Layer ->
+Feature Extraction -> Rule Engine + Scoring -> Impact + Gate ->
+Reports + CI Artifacts
+
+OUTPUT MODEL
+1. Suite Summary
+   - total tests, stable/suspect/flaky counts
+   - overall flakiness score
+   - trend vs previous window
+2. Ranked Test Table
+   - test_id, label, fail_rate, rerun_recovery, signature_count, confidence
+3. Per-Test Drilldown
+   - recent run timeline, top signatures, suggested next action
+
+BASE MODULE SKELETONS
+
+framework.normalize
+--------------------
+Purpose: parse pytest reports and map to a canonical model.
+
+    from dataclasses import dataclass
+
+    @dataclass
+    class TestRunRecord:
+        run_id: str
+        test_id: str
+        status: str
+        duration_ms: int
+        failure_signature: str | None
+        rerun_index: int | None
+        timestamp_utc: str
+
+    class ReportNormalizer:
+        def parse_junit(self, xml_path: str) -> list[TestRunRecord]:
+            ...
+
+        def normalize(self, records: list[TestRunRecord]) -> list[TestRunRecord]:
+            # cleanup IDs, normalize status values, dedupe
+            ...
+
+framework.classify
+--------------------
+Purpose: derive features and classify Stable/Suspect/Flaky with confidence.
+
+    from dataclasses import dataclass
+
+    @dataclass
+    class TestFeatures:
+        test_id: str
+        fail_rate: float
+        rerun_recovery_rate: float
+        signature_count: int
+        recent_fail_streak: int
+
+    @dataclass
+    class Classification:
+        test_id: str
+        label: str
+        confidence: float
+        reasons: list[str]
+
+    class FeatureExtractor:
+        def build(self, records) -> list[TestFeatures]:
+            ...
+
+    class RuleEngine:
+        def classify(self, f: TestFeatures) -> Classification:
+            ...
+
+framework.impact
+--------------------
+Purpose: convert per-test results into suite risk and CI gate decision.
+
+    from dataclasses import dataclass
+
+    @dataclass
+    class SuiteImpact:
+        total_tests: int
+        flaky_count: int
+        suspect_count: int
+        flakiness_score: float
+        gate: str
+        rationale: str
+
+    class ImpactEvaluator:
+        def evaluate(self, classifications) -> SuiteImpact:
+            ...
+
+TOPICS TO COVER
+- module boundaries and clean interfaces
+- dataclasses for typed models
+- deterministic rule engine design
+- JUnit XML structure and parsing
+- rerun metadata conventions
+- stable test ID construction
+- fail rate and moving windows
+- signature variance and trend heuristics
+- confidence scoring and conflict handling
+- threshold policies and gate semantics
+- artifact publishing and traceability
+- AI summaries that do not affect gate decisions
+
+================================================================================
+8-SPRINT PLAN (10 POINTS PER SPRINT, 2 WEEKS EACH, ~3.5 MONTHS TOTAL)
+================================================================================
+Full task-by-task breakdown with story points lives in:
+  resource/sprints/sprint-1-pytest-foundation.txt
+  resource/sprints/sprint-2-pom-plugin-flakiness.txt
+  resource/sprints/sprint-3-github-actions-history.txt
+  resource/sprints/sprint-4-detector-normalize-classify.txt
+  resource/sprints/sprint-5-detector-impact-report-cli-gate.txt
+  resource/sprints/sprint-6-api-automation-light.txt
+  resource/sprints/sprint-7-db-validation-light.txt
+  resource/sprints/sprint-8-hardening-showcase.txt
+
+These files are formatted for direct import into JIRA (short description +
+a numbered task list with story points per task).
+
+================================================================================
+DELIVERABLES
+================================================================================
+- A runnable pytest framework with clean plugin boundaries
+- One fully working Selenium POM plugin generating real and engineered
+  flaky signal
+- A GitHub Actions history-generation workflow (first real CI project)
+- A working flaky test detector (normalize/classify/impact/report/CLI) over
+  real JUnit history
+- A CI gate workflow enforcing the detector's PASS/WARN/FAIL decision
+- A small but real API automation slice (added later, Sprint 6)
+- A small DB validation slice (added later, Sprint 7)
+- Interview-friendly documentation, architecture diagram, and demo script
+
+================================================================================
+KEY NOTES
+================================================================================
+- This is a final attempt to regain automation fluency and interview
+  readiness — the timeline (~3.5 months, 10 points/sprint) is deliberately
+  conservative to leave room for pending work, leaves, and mid-course
+  clarification.
+- The flaky detector, its Selenium POM data source, and GitHub Actions are
+  the priority path — everything else is sequenced around them.
+- AD code is excluded from discovery, not migrated or preserved as a plugin.
+- API and DB automation are real but intentionally light, and deliberately
+  scheduled last.
+- Deterministic outputs (labels, confidence, gate) remain the source of
+  truth; AI stays non-blocking and additive only.
+
 ================================================================================

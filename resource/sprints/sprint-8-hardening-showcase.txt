@@ -1,0 +1,26 @@
+SPRINT 8 — HARDENING, POLISH, AND SHOWCASE
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Final sprint: add the last reporting polish (HTML output, optional AI
+summary), absorb any spillover from earlier sprints, and package the whole
+POC into interview-ready documentation and a demo script.
+
+TASKS
+1. [2 pts] Add HTML report output to framework/reporting.py
+   - Only once JSON/CSV output is already stable.
+
+2. [2 pts] Add optional framework/ai_summary.py (non-blocking narrative
+   layer)
+   - Summarize deterministic output in plain language; no gate authority.
+
+3. [2 pts] Reserve buffer for spillover from earlier sprints
+   - Use this explicitly as slack, not new scope, if earlier sprints ran
+     long.
+
+4. [2 pts] Polish README, architecture diagram, and plugin guide
+   - Document the plugin model and the key decisions made along the way.
+
+5. [2 pts] Prepare a short demo script and interview narrative
+   - Walk through: real repo -> plugin -> real/engineered flakiness ->
+     GitHub Actions history -> detector output -> CI gate.

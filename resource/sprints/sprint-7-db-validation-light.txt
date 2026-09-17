@@ -1,0 +1,24 @@
+SPRINT 7 — DB VALIDATION (LIGHT) + STABILIZATION
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Add a small DB validation layer (kept intentionally light since DB is a
+newer skill area) to confirm API-driven effects at the data layer, then use
+remaining time to stabilize plugin boundaries and fixtures across all three
+plugins built so far.
+
+TASKS
+1. [1 pt] Lock the DB engine choice (SQLite recommended) for this sprint
+   - Decide and document the choice before writing helpers.
+
+2. [4 pts] Build a thin DB helper layer
+   - select / insert / update verification, row-count / state checks.
+   - Keep it targeted — no ORM, no heavy abstraction.
+
+3. [3 pts] Add one or two API-to-DB verification flow tests
+   - Confirm a DB-visible effect after an API-driven action.
+
+4. [2 pts] Stabilize plugin boundaries, fixtures, and config handling
+   across all three plugins
+   - Clean up any duplicated logic or inconsistent fixture behavior found
+     while adding the last two plugins.

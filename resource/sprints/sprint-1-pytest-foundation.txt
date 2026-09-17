@@ -1,0 +1,39 @@
+SPRINT 1 — MINIMAL PYTEST FOUNDATION
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Stand up just enough pytest infrastructure to run something real: config,
+root fixtures, promoted logger, AD-code exclusion, and empty plugin
+skeletons. This sprint proves the skeleton works before anything else is
+built on top of it.
+
+TASKS
+1. [3 pts] Set up pyproject.toml/pytest.ini and root conftest.py
+   - Define shared fixtures usable by any future plugin (run_id, artifact
+     dir, session logger).
+   - Set --junitxml output convention and artifact folder path.
+   - Keep this intentionally minimal — just enough to run something real.
+
+2. [2 pts] Promote LogManager into core/util/log_manager.py; retire
+   library/util/log.py
+   - Copy the better logger design (from resource/page_object_model/
+     utilities/logger.py) as-is into core.
+   - Preserve handler add/remove lifecycle for console and file output.
+   - Confirm it works from a pytest fixture without Tkinter coupling.
+
+3. [1 pt] Exclude library/ (AD code) from pytest discovery via testpaths
+   - Confirm AD tests no longer collect or run.
+   - Leave the code in place; do not migrate or convert it.
+   - Note it for later deletion — no further time spent on it.
+
+4. [2 pts] Create empty plugin skeleton folders
+   - plugins/selenium_pom, plugins/api_plugin (later), plugins/db_validation
+     (later).
+   - Just enough structure to know where things will live.
+   - No real logic yet — this is scaffolding only.
+
+5. [2 pts] Verify pytest discovery and artifact output work end-to-end with
+   a trivial smoke test
+   - Confirm JUnit XML is generated in the expected location.
+   - Confirm library/ truly does not appear in collection.
+   - Treat this as the "does the skeleton actually work" checkpoint.

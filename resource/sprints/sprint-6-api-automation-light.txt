@@ -1,0 +1,26 @@
+SPRINT 6 — API AUTOMATION (LIGHT)
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Add a small, practical API automation plugin. Kept deliberately light since
+API testing is a newer skill area — focus on a clean reusable client
+fixture, auth coverage, and a handful of well-chosen CRUD/negative-path
+tests rather than broad coverage.
+
+TASKS
+1. [1 pt] Lock the target API and auth mechanism for this sprint
+   - Decide on a public sandbox API or a simple local mock, and note the
+     decision.
+
+2. [3 pts] Build the api_plugin contract and a reusable requests.Session-
+   based fixture
+   - Standardize base URL, headers, auth token, and teardown behavior.
+
+3. [3 pts] Add auth coverage plus response/header assertion helpers
+   - Cover login/token acquisition or the equivalent flow.
+   - Add small, reusable assertion helpers for status/headers/payload
+     shape.
+
+4. [3 pts] Implement small CRUD and negative-path tests
+   - Cover one API surface end-to-end.
+   - Include at least one invalid-input and one unauthorized-path case.

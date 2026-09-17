@@ -1,0 +1,32 @@
+SPRINT 3 — GITHUB ACTIONS FUNDAMENTALS + HISTORY GENERATION
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Learn GitHub Actions from scratch (no prior experience assumed) and build a
+matrix-strategy workflow that runs the selenium_pom suite 15-20 times to
+generate real historical JUnit XML data for the flaky detector to consume.
+
+TASKS
+1. [2 pts] Learn GitHub Actions fundamentals
+   - Cover triggers, jobs/steps, artifacts, matrix strategy.
+   - Treat this as genuinely new material, not assumed knowledge.
+   - Build a trivial "hello world" workflow first to confirm basics before
+     the real one.
+
+2. [4 pts] Build generate-history.yml with a matrix strategy running the
+   suite N=15-20 times
+   - Each matrix job runs `pytest plugins/selenium_pom/tests` once.
+   - Each matrix job uploads its own junit-<run>.xml artifact.
+   - Trigger via workflow_dispatch for controlled, repeatable runs.
+
+3. [3 pts] Add an aggregation job that downloads all matrix artifacts into
+   artifacts/pytest-runs/
+   - Depends on the matrix job completing.
+   - Bundles/commits results so the detector can consume them later.
+
+4. [1 pt] Trigger the workflow and validate 15-20 real JUnit reports with a
+   mix of stable/flaky signal
+   - Spot-check that engineered and real flaky tests actually show
+     variation across runs.
+   - Confirm the aggregated folder structure matches what
+     framework.normalize will expect.

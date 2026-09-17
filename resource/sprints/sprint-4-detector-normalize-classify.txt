@@ -1,0 +1,27 @@
+SPRINT 4 — FLAKY DETECTOR: NORMALIZE + CLASSIFY
+Points: 10 | Duration: 2 weeks
+
+SHORT DESCRIPTION
+Build the ingestion and classification core of the flaky detector against
+the real historical JUnit data generated in Sprint 3: parse reports into a
+canonical model, compute features, and apply deterministic classification
+rules with confidence and reasons.
+
+TASKS
+1. [3 pts] Implement framework/normalize.py (ReportNormalizer,
+   TestRunRecord) against the real downloaded history
+   - Parse JUnit XML into canonical records.
+   - Normalize test IDs, statuses, timestamps, and failure signatures.
+   - Add basic validation for malformed or partial reports.
+
+2. [3 pts] Implement FeatureExtractor
+   - Compute fail rate, rerun recovery, signature count, streak, trend.
+   - Compute each feature against the real accumulated history.
+   - Handle edge cases (all-passed test, single-failure test, sparse
+     history).
+
+3. [4 pts] Implement RuleEngine with confidence/reasons and a threshold
+   policy
+   - Apply deterministic Stable/Suspect/Flaky rules.
+   - Define concrete default threshold values (not just abstract rules).
+   - Return human-readable reasons alongside each label.
