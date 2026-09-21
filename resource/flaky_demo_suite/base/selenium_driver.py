@@ -2,7 +2,6 @@ import logging
 import time
 from selenium import webdriver
 
-from tests.conftest import SESSION_DIR_ENV
 from utilities.logger import LogManager
 from utilities.screenshot import take_screenshot as _take_screenshot
 

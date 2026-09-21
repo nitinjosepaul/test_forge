@@ -1,0 +1,118 @@
+## Agenda
+Note: This session is to walk through progress so far — the full problem
+statement and detector design are still open for review/feedback, not final.
+- Foundation: bare-skeleton framework (Selenium + Pytest + Logger)
+- The Flaky Test Problem
+- Flaky Test Detector: Approach
+- Design Deep-Dive: Stage by Stage
+- Status & Roadmap
+
+---
+
+## Foundation: A Bare Skeleton Framework (Selenium + Pytest)
+- Built a minimal, working skeleton — not a full framework yet — using
+  Selenium + Pytest with a Page Object Model structure (base/, pages/,
+  tests/, utilities/)
+- Purpose of this skeleton: prove the structure works end-to-end, and
+  produce real Pytest JUnit XML reports to feed the detector
+- Logger is a key piece of this foundation, not a side detail:
+  - Singleton-style LogManager — one shared logger instance for the whole run
+  - Every run gets a timestamped log file + console output
+  - Per-test file handlers can be added/removed on demand
+- Why the logger matters here: reliable, structured execution history is
+  exactly the raw material the flaky test detector needs later — this isn't
+  just "nice logging," it's the foundation the detector will build on
+
+---
+
+## The Problem: Flaky Tests
+- Tests that pass/fail inconsistently with no code change
+- Erodes trust in CI — teams start ignoring red builds ("just rerun it")
+- Costly reruns, wasted engineering time, delayed releases
+- Most frameworks show pass/fail per run — not reliability or trend over time
+- Note: this problem statement is a starting point for discussion today,
+  not a finalized scope — feedback welcome
+
+---
+
+## Flaky Test Detector — The Approach (proposed)
+- Analyze the last N pytest JUnit XML reports (historical run data)
+- Extract per-test signal: fail rate, failure-signature variance, trend
+- Apply DETERMINISTIC rules (no ML/AI required) → Stable / Suspect / Flaky
+- Roll up into one CI gate: PASS / WARN / FAIL
+- Explainable & auditable — every classification includes plain-English reasons
+- Note: this is the proposed direction — thresholds, rules, and scope are
+  still open for review, not locked in
+
+---
+
+## Stage 1: Ingestion + Normalization
+- Input: JUnit XML files, one per historical test run (each has a
+  <testsuite timestamp="..."> and one <testcase> per test)
+- Parsed using Python's standard xml.etree — no pytest dependency, so the
+  detector works independently of the test framework that produced the data
+- Each <testcase> becomes a canonical TestRunRecord:
+  - run_id — from the XML's own internal timestamp (authoritative, not filename)
+  - test_id — classname::name (stable identity across runs)
+  - status — passed / failed / skipped
+  - failure_signature — normalized fingerprint: "{exception_type}:{message}"
+    with numbers replaced by <num>, so random values don't create false-unique
+    signatures, but genuinely different root causes stay distinct
+- STATUS: built and validated against real generated data
+
+---
+
+## Stage 2: Feature Extraction
+- For each unique test_id, aggregate across all N runs:
+  - fail_rate = failures / total runs
+  - signature_count = number of DISTINCT failure signatures seen
+    (flags "root cause varies" vs "fails the same way every time")
+  - recent_fail_streak = consecutive failures in the most recent runs (trend)
+  - rerun_recovery_rate — deferred until a rerun plugin (pytest-rerunfailures)
+    is adopted; needs real rerun data to be meaningful
+- STATUS: designed, not yet built
+
+---
+
+## Stage 3: Rule Engine + Scoring
+- Deterministic thresholds — no ML/AI needed for MVP (important: explainable
+  and auditable, not a black box)
+  - Stable: fail_rate <= 10% AND signature_count <= 1
+  - Flaky: fail_rate > 30% OR signature_count >= 2
+  - Suspect: everything in between
+- Each result carries a confidence score + human-readable reasons
+  (e.g. "2 distinct failure signatures across 10 runs")
+- STATUS: thresholds proposed, not yet locked or coded
+
+---
+
+## Stage 4: Impact + Gate
+- Rolls per-test classifications into one suite-level decision:
+  - flakiness_score = (flaky_count x 1.0 + suspect_count x 0.5) / total_tests
+  - Gate: PASS if zero Flaky tests, WARN if score <= 0.30, FAIL if score > 0.30
+- This is the piece that plugs into CI — one actionable signal instead of a
+  wall of red/green test results
+- STATUS: designed, not yet built
+
+---
+
+## Stage 5: Reports + CI Artifacts
+- Suite summary (totals, trend vs previous window)
+- Ranked test table — worst offenders first (test_id, label, fail_rate,
+  signature_count, confidence)
+- Per-test drilldown — recent run timeline, top signatures, suggested action
+- Exported as JSON / CSV / HTML for CI to publish as a build artifact
+- STATUS: not yet built
+
+---
+
+## Status & Roadmap
+- Working today: Selenium POM suite + singleton logger, 30 synthetic tests
+  (stable/suspect/flaky) generating controlled behavior, Stage 1
+  (Normalization) built and validated against real generated data
+- Next: Stages 2-4 (feature extraction, rule engine, CI gate)
+- 8-sprint plan (~3.5 months) to deliver the full framework
+
+---
+
+## Thank You / Questions

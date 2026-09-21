@@ -30,7 +30,11 @@ venv/
 
 # Logs
 log/
+logs/
 *.log
+
+# Flaky detector generated reports (JUnit XML from synthetic test runs)
+reports/
 
 # Configurations
 config.py

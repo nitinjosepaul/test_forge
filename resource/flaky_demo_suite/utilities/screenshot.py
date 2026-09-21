@@ -3,7 +3,10 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from tests.conftest import SESSION_DIR_ENV
+# NOTE: duplicated (not imported) from tests/conftest.py to avoid a circular
+# import (tests.conftest -> utilities.test_status -> utilities.screenshot ->
+# tests.conftest). Keep this value in sync with SESSION_DIR_ENV in conftest.py.
+SESSION_DIR_ENV = "POM_SESSION_DIR"
 
 
 def take_screenshot(driver, name: str) -> str:
