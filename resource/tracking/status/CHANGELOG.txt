@@ -1,0 +1,75 @@
+================================================================================
+CHANGELOG — test_forge
+================================================================================
+Append-only, dated log of decisions and milestones. Newest entries at the
+top. STATUS.txt (same folder) is the overwritten "current snapshot"; this
+file is the permanent history behind it.
+
+[2026-09-21] Repo restructure: AD legacy code (library/, config.py,
+  server.ini, start.py, UNIT_TEST.py, log/) moved to resource/archive/.
+  flaky_demo_suite/* (base/, pages/, workflows/, utilities/, tests/,
+  configfiles/, framework/, logs/, reports/) promoted from
+  resource/flaky_demo_suite/ to the repo root. demo/ and sprints/ folders,
+  plus this new status/ folder, consolidated under resource/tracking/.
+
+[2026-09-21] run_multiple.ps1 moved from flaky_demo_suite root into
+  tests/synthetic/ (co-located with the tests it runs); internal path logic
+  updated to still resolve reports/ at the suite root.
+
+[2026-09-21] .gitignore updated: added logs/ and reports/ (generated
+  artifacts, not tracked).
+
+[2026-09-21] Progress-check demo delivered. Framed explicitly as "progress
+  check, not design approval" — problem statement and detector design still
+  open for review. Covered: Selenium+Pytest skeleton with singleton logger
+  as a foundational piece, the flaky-test problem, proposed detector
+  approach, and a per-stage design breakdown with honest build-status labels
+  (built / designed / not yet built) for each of the 5 pipeline stages.
+
+[2026-09-21] Architecture insight: because detector Stage 1 parses plain
+  JUnit XML rather than pytest internals, the detector is framework-agnostic
+  by design — Java/TestNG produce JUnit XML natively (zero conversion
+  needed), Robot Framework needs one conversion step (rebot --xunit). Only
+  test_id construction and failure-signature normalization would need small,
+  isolated per-framework adapters.
+
+[2026-09-21] run_multiple.ps1 report filenames changed from sequential
+  (run_<n>.xml) to timestamped (run_<yyyyMMdd_HHmmss_fff>.xml) — purely
+  cosmetic/for uniqueness so the script can be re-run repeatedly without
+  tracking existing files. The detector was already keying off the XML's
+  internal timestamp attribute, not the filename, so no code changes needed.
+
+[2026-09-20/21] framework/ relocated from repo root into
+  resource/flaky_demo_suite/framework/ (temporary, self-contained for the
+  demo) — later reverted back to the repo root as part of the 2026-09-21
+  restructure, since that's its permanent target location per the sprint
+  plan.
+
+[2026-09-20] Confirmed: run_id and timestamp_utc are parsed from the JUnit
+  XML's own internal <testsuite timestamp="..."> attribute, NOT from the
+  report filename or from the logs/ session folder. logs/ and reports/
+  remain intentionally separate, uncoupled folders (no forced merge).
+
+[2026-09-20] Decided: rerun_index is None for all records until
+  pytest-rerunfailures (or similar) is adopted — deferred rather than
+  approximated with a cross-run proxy, since a real rerun signal needs
+  empirical verification of how that plugin shapes JUnit XML output.
+
+[2026-09-20] framework/normalize.py (detector Stage 1) implemented:
+  TestRunRecord dataclass + ReportNormalizer (parse_junit, normalize,
+  load_history). Validated against 10 real generated JUnit XML reports (300
+  records, 30 unique tests, 10 unique runs, correct chronological ordering,
+  correct signature-variance detection).
+
+[2026-09-20] Confirmed: LogManager uses class-level shared state — one
+  logger instance is shared across the whole test run regardless of how
+  many times it's instantiated (functionally a singleton).
+
+[2026-09-19/20] Demo stepping stone created: resource/page_object_model
+  renamed to resource/flaky_demo_suite (temporary name); added
+  tests/synthetic/ with 30 pure-Python tests (test_stable/test_suspect/
+  test_flaky); fixed two pre-existing circular imports blocking all test
+  execution (utilities/screenshot.py and base/selenium_driver.py both
+  imported SESSION_DIR_ENV from tests/conftest.py); installed pytest and
+  selenium (were missing from the environment); generated first batch of
+  10 JUnit XML reports via run_multiple.ps1.

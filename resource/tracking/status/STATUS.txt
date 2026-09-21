@@ -1,0 +1,52 @@
+================================================================================
+CURRENT STATUS — test_forge
+================================================================================
+Last updated: 2026-09-21
+
+This file is a live snapshot, overwritten in place as status changes. For a
+dated history of decisions and milestones, see CHANGELOG.txt in this same
+folder. For stable design/architecture, see the root README.txt.
+
+CURRENT PHASE
+--------------------------------------------------------------------------------
+Pre-Sprint-1 "demo stepping stone" — a deliberately temporary, self-contained
+proof that the flaky detector's core idea works end-to-end, built to create
+early momentum ahead of a progress-check demo (2026-09-21). The 8-sprint plan
+(resource/tracking/sprints/) has NOT started yet.
+
+COMPLETED
+--------------------------------------------------------------------------------
+- [x] Bare-skeleton Selenium + Pytest suite (Page Object Model layout) at the
+      repo root: base/, pages/, workflows/, utilities/, tests/, configfiles/
+- [x] Singleton-style LogManager (utilities/logger.py) — one shared logger
+      instance per test run, per-test file handlers addable/removable
+- [x] tests/synthetic/ — 30 pure-Python tests (stable/suspect/flaky), no
+      browser dependency, controlled randomness for reliable demo signal
+- [x] tests/synthetic/run_multiple.ps1 — local runner generating timestamped
+      JUnit XML reports into reports/
+- [x] framework/normalize.py (detector Stage 1) — parses JUnit XML into
+      canonical TestRunRecords with failure-signature normalization;
+      validated against real generated report data
+- [x] Progress-check demo delivered (2026-09-21) — Selenium+Logger
+      foundation, flaky-test problem, proposed detector approach, per-stage
+      design breakdown with honest build-status labels
+- [x] Repo restructure (2026-09-21) — AD legacy code archived to
+      resource/archive/; flaky_demo_suite/* promoted to repo root;
+      demo/sprints/status consolidated under resource/tracking/
+
+IN PROGRESS
+--------------------------------------------------------------------------------
+- [ ] Decide conftest.py per-test-case logging hook (pytest_runtest_makereport)
+
+NOT STARTED
+--------------------------------------------------------------------------------
+- [ ] framework/classify.py (detector Stage 2 — FeatureExtractor + RuleEngine)
+- [ ] framework/impact.py (detector Stage 3 — ImpactEvaluator)
+- [ ] framework/demo_run.py (Stage 5 — minimal orchestration script)
+- [ ] Decision: adopt pytest-rerunfailures for real rerun_recovery_rate data
+- [ ] Sprint 1 — Minimal pytest foundation (see resource/tracking/sprints/)
+- [ ] Sprints 2-8 (see resource/tracking/sprints/)
+
+NEXT UP
+--------------------------------------------------------------------------------
+Build framework/classify.py against the existing synthetic report history.

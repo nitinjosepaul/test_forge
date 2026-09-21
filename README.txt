@@ -19,9 +19,19 @@ roles. Secondary goals — light API automation and DB validation — are
 included but deliberately scoped down in favor of depth on the detector and
 CI/CD.
 
-Legacy AD code under `library/` is out of scope going forward. It is excluded
-from pytest discovery and retained only until it is deleted; it will not be
-migrated or converted into a plugin.
+Legacy AD code (formerly `library/`, `config.py`, `server.ini`, `start.py`,
+`UNIT_TEST.py`) has been moved to `resource/archive/`. It is out of scope
+going forward, excluded from pytest discovery, and retained only for
+reference; it will not be migrated or converted into a plugin.
+
+For current build status, demo notes, and a dated history of decisions,
+see `resource/tracking/` (not this file — README stays limited to stable
+design/architecture that doesn't change week to week):
+
+    resource/tracking/status/STATUS.txt      current progress snapshot
+    resource/tracking/status/CHANGELOG.txt   dated log of decisions/milestones
+    resource/tracking/demo/                  demo notes and slide decks
+    resource/tracking/sprints/                per-sprint task breakdowns
 
 SCOPE
 --------------------------------------------------------------------------------
@@ -52,6 +62,8 @@ PRIORITY ORDER
 
 ARCHITECTURE
 --------------------------------------------------------------------------------
+Target architecture (built out across Sprints 1-8, not yet started):
+
     test_forge/
       |-- pyproject.toml / pytest.ini      testpaths excludes library/ (AD code)
       |-- conftest.py                      root fixtures, artifact path, run metadata
@@ -65,7 +77,7 @@ ARCHITECTURE
       |   |-- cli.py                       analysis entry point
       |   `-- ai_summary.py (optional)     narrative overlay only, no gate authority
       |-- plugins/
-      |   |-- selenium_pom/                converted from resource/page_object_model
+      |   |-- selenium_pom/                converted from the current root-level skeleton
       |   |-- api_plugin/                  added in Sprint 6
       |   `-- db_validation/               added in Sprint 7
       |-- artifacts/pytest-runs/           15-20 JUnit XML reports from GitHub Actions
@@ -73,28 +85,81 @@ ARCHITECTURE
           |-- generate-history.yml         matrix run -> N JUnit artifacts -> aggregated
           `-- flaky-gate.yml               runs framework.cli, enforces the gate
 
-    library/  (legacy AD code, excluded from discovery, pending deletion)
+    resource/archive/  (legacy AD code + old docs, excluded from discovery, kept for reference)
+
+Current physical layout (pre-Sprint-1 demo stepping stone, as of 2026-09-21):
+
+    test_forge/
+      |-- base/               WebDriver setup/teardown
+      |-- pages/               Page Object Model (login_page, dashboard_page)
+      |-- workflows/           reusable multi-page flows (e.g. login)
+      |-- utilities/           logger.py (singleton LogManager), screenshot.py, test_status.py
+      |-- tests/
+      |   |-- conftest.py      bootstrap_run_logger fixture, session setup
+      |   |-- home/            real Selenium test cases
+      |   `-- synthetic/       30 pure-Python tests (stable/suspect/flaky) + run_multiple.ps1
+      |-- configfiles/         environment/config settings
+      |-- logs/                timestamped execution logs per run (gitignored)
+      |-- reports/             JUnit XML reports, detector input (gitignored)
+      |-- framework/           detector Stage 1 only (normalize.py); classify/impact
+      |                        not yet built
+      `-- resource/
+          |-- archive/         legacy AD code + old planning docs
+          `-- tracking/
+              |-- demo/         demo deck / slide notes
+              |-- sprints/      per-sprint task breakdowns (JIRA-import-ready)
+              `-- status/       STATUS.txt (snapshot) + CHANGELOG.txt (history)
+
+This flattened layout deliberately reuses folder names that will carry
+forward (`base/`, `pages/`, `tests/`, `framework/`, etc.) so that converting
+it into `plugins/selenium_pom/` in Sprint 2 is a move + import-path fix, not
+a rewrite. `framework/` already sits at its final target location — the one
+piece of the current layout that is NOT temporary.
 
 KEY DESIGN DECISIONS
 --------------------------------------------------------------------------------
 pytest is the sole execution engine. `core/` holds framework-agnostic shared
 infra (currently just logging); `framework/` is the detector and never
-imports from a plugin; each plugin under `plugins/` owns its own
-`conftest.py` and fixtures.
+imports from a plugin or from pytest internals — it only reads JUnit XML
+from disk; each plugin under `plugins/` owns its own `conftest.py` and
+fixtures.
 
-  - AD code (library/) — excluded from discovery only, not migrated, not a
-    plugin. Left in place until deleted.
+  - AD code (library/, config.py, server.ini, start.py, UNIT_TEST.py) —
+    moved to resource/archive/, excluded from discovery, not migrated, not a
+    plugin.
   - Only one plugin exists early on — plugins/selenium_pom, converted from
-    resource/page_object_model. api_plugin and db_validation are scaffolded
-    only in their own sprints (6 and 7).
-  - Logging — LogManager (from the POM utilities) is promoted to
-    core/util/log_manager.py, replacing library/util/log.py.
+    the current root-level skeleton. api_plugin and db_validation are
+    scaffolded only in their own sprints (6 and 7).
+  - Logging — LogManager is confirmed to use class-level shared state, i.e.
+    it is functionally a singleton: one logger instance is shared across the
+    whole test run regardless of how many times it's instantiated. It will
+    be promoted to core/util/log_manager.py, replacing library/util/log.py.
   - Flakiness is both real and engineered:
       * Real: 1-2 existing Selenium steps are left genuinely timing-sensitive
         (e.g. no explicit wait) to produce authentic intermittent failures.
-      * Engineered: 2-3 dummy tests use controlled randomness or sleep-based
-        races, clearly commented as intentional, guaranteeing all three
-        labels (Stable / Suspect / Flaky) appear reliably in a demo.
+      * Engineered: the current tests/synthetic/ package (30 pure-Python
+        tests, no browser dependency) uses controlled randomness to
+        guarantee all three labels (Stable / Suspect / Flaky) appear
+        reliably without waiting on real UI timing — this is what's driving
+        the detector demo today.
+  - Report identity — a run's `run_id` and `timestamp_utc` are parsed from
+    the JUnit XML's own internal `<testsuite timestamp="...">` attribute,
+    NOT from the report filename. Filenames are timestamped purely for
+    human-friendly uniqueness (`run_<yyyyMMdd_HHmmss_fff>.xml`), so the
+    runner script can be re-executed any number of times without tracking
+    which files already exist.
+  - `logs/` and `reports/` are intentionally separate, uncoupled folders —
+    no forced merge into a single `runs/<timestamp>/` structure.
+  - `rerun_index` is `None` for all records until a rerun mechanism
+    (`pytest-rerunfailures`) is adopted — deferred rather than approximated,
+    since a real rerun signal needs empirical verification of how that
+    plugin shapes JUnit XML output.
+  - Framework-agnostic by design — because Stage 1 parses plain JUnit XML
+    instead of pytest's internal APIs, the same detector could analyze a
+    Java/TestNG suite (native JUnit XML, zero conversion) or a Robot
+    Framework suite (one `rebot --xunit` conversion step). Only test_id
+    construction and failure-signature normalization would need small,
+    isolated per-framework adapters.
   - History generation target — 15-20 runs. Enough for meaningful fail-rate
     and trend math without a long generation cycle.
   - History generation mechanism — a GitHub Actions matrix workflow
@@ -121,6 +186,10 @@ Problem statement
     Analyze the last N pytest reports and classify each test as Stable,
     Suspect, or Flaky using deterministic rules over failure rate, rerun
     recovery behavior, and failure signature variance.
+
+    (For which stages are actually built vs. still designed-only, see
+    resource/tracking/status/STATUS.txt — this section describes the
+    stable design, not current build status.)
 
 Locked scope boundaries
     - Input: last N pytest reports (JUnit XML + optional pytest metadata)
@@ -210,8 +279,9 @@ Topics covered
 
 SPRINT PLAN
 --------------------------------------------------------------------------------
-Full task-by-task breakdown with story points lives in resource/sprints/,
-one file per sprint, formatted for direct import into JIRA:
+Full task-by-task breakdown with story points lives in
+resource/tracking/sprints/, one file per sprint, formatted for direct
+import into JIRA:
 
     sprint-1-pytest-foundation.txt
     sprint-2-pom-plugin-flakiness.txt
@@ -238,5 +308,10 @@ NOTES
 Deterministic outputs — labels, confidence, and the CI gate — remain the
 source of truth throughout. AI summarization is optional, additive, and
 never influences classification or gate decisions.
+
+This README is treated as a living document: whenever a design decision
+changes, is confirmed, or is superseded, this file (not just plan.md) gets
+reviewed and updated in the same pass — it's the one artifact meant to be
+read standalone by someone with no session history.
 
 ================================================================================
