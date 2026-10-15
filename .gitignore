@@ -58,3 +58,7 @@ pytest.ini
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Demo binaries (kept local only; text versions are tracked)
+*.pdf
+*.pptx

@@ -28,10 +28,11 @@ For current build status, demo notes, and a dated history of decisions,
 see `resource/tracking/` (not this file — README stays limited to stable
 design/architecture that doesn't change week to week):
 
-    resource/tracking/status/STATUS.txt      current progress snapshot
-    resource/tracking/status/CHANGELOG.txt   dated log of decisions/milestones
-    resource/tracking/demo/                  demo notes and slide decks
-    resource/tracking/sprints/                per-sprint task breakdowns
+    resource/tracking/status/STATUS.txt          current progress snapshot
+    resource/tracking/status/CHANGELOG.txt       dated log of decisions/milestones
+    resource/tracking/demo/                      demo notes and slide decks
+    resource/tracking/testforgeworks/current.txt current Kanban board (Feature/Story/Task)
+    resource/tracking/testforgeworks/backlog.txt unscheduled Kanban backlog
 
 SCOPE
 --------------------------------------------------------------------------------
@@ -42,9 +43,13 @@ SCOPE
 
 TIMELINE
 --------------------------------------------------------------------------------
-~3.5 months across 8 sprints (2 weeks / 10 story points each). Sprint sizing
-is intentionally conservative to leave room for day-to-day work commitments
-and mid-course adjustments.
+~3.5 months, sized conservatively to leave room for day-to-day work
+commitments and mid-course adjustments. Sprint 1 (Sep 21 - Oct 4/5) is the
+only sprint explicitly scoped so far — see
+resource/tracking/testforgeworks/current.txt. Everything after Sprint 1 is
+deliberately not pre-assigned to sprints; it lives as a Feature/Story/Task
+Kanban backlog (resource/tracking/testforgeworks/backlog.txt) and is pulled
+in incrementally as work progresses.
 
 PRIORITY ORDER
 --------------------------------------------------------------------------------
@@ -62,7 +67,8 @@ PRIORITY ORDER
 
 ARCHITECTURE
 --------------------------------------------------------------------------------
-Target architecture (built out across Sprints 1-8, not yet started):
+Target architecture (built out incrementally per the Kanban board in
+resource/tracking/testforgeworks/, beyond Sprint 1 scope not yet started):
 
     test_forge/
       |-- pyproject.toml / pytest.ini      testpaths excludes library/ (AD code)
@@ -78,8 +84,8 @@ Target architecture (built out across Sprints 1-8, not yet started):
       |   `-- ai_summary.py (optional)     narrative overlay only, no gate authority
       |-- plugins/
       |   |-- selenium_pom/                converted from the current root-level skeleton
-      |   |-- api_plugin/                  added in Sprint 6
-      |   `-- db_validation/               added in Sprint 7
+      |   |-- api_plugin/                  API Automation (Light) story
+      |   `-- db_validation/               DB Validation (Light) & Stabilization story
       |-- artifacts/pytest-runs/           15-20 JUnit XML reports from GitHub Actions
       `-- .github/workflows/
           |-- generate-history.yml         matrix run -> N JUnit artifacts -> aggregated
@@ -98,7 +104,7 @@ Current physical layout (pre-Sprint-1 demo stepping stone, as of 2026-09-21):
       |   |-- conftest.py      bootstrap_run_logger fixture, session setup
       |   |-- home/            real Selenium test cases
       |   `-- synthetic/       30 pure-Python tests (stable/suspect/flaky) + run_multiple.ps1
-      |-- configfiles/         environment/config settings
+      |-- config/              environment/config settings
       |-- logs/                timestamped execution logs per run (gitignored)
       |-- reports/             JUnit XML reports, detector input (gitignored)
       |-- framework/           detector Stage 1 only (normalize.py); classify/impact
@@ -106,13 +112,14 @@ Current physical layout (pre-Sprint-1 demo stepping stone, as of 2026-09-21):
       `-- resource/
           |-- archive/         legacy AD code + old planning docs
           `-- tracking/
-              |-- demo/         demo deck / slide notes
-              |-- sprints/      per-sprint task breakdowns (JIRA-import-ready)
-              `-- status/       STATUS.txt (snapshot) + CHANGELOG.txt (history)
+              |-- demo/             demo deck / slide notes
+              |-- testforgeworks/   current.txt + backlog.txt Kanban board (JIRA-import-ready)
+              `-- status/           STATUS.txt (snapshot) + CHANGELOG.txt (history)
 
 This flattened layout deliberately reuses folder names that will carry
 forward (`base/`, `pages/`, `tests/`, `framework/`, etc.) so that converting
-it into `plugins/selenium_pom/` in Sprint 2 is a move + import-path fix, not
+it into `plugins/selenium_pom/` (Test Automation Plugins feature — Selenium
+Plugin Conversion & Flakiness Design story) is a move + import-path fix, not
 a rewrite. `framework/` already sits at its final target location — the one
 piece of the current layout that is NOT temporary.
 
@@ -129,7 +136,8 @@ fixtures.
     plugin.
   - Only one plugin exists early on — plugins/selenium_pom, converted from
     the current root-level skeleton. api_plugin and db_validation are
-    scaffolded only in their own sprints (6 and 7).
+    scaffolded only as part of their own backlog stories (API Automation
+    (Light); DB Validation (Light) & Stabilization).
   - Logging — LogManager is confirmed to use class-level shared state, i.e.
     it is functionally a singleton: one logger instance is shared across the
     whole test run regardless of how many times it's instantiated. It will
@@ -168,13 +176,14 @@ fixtures.
     downloads all artifacts into artifacts/pytest-runs/. This workflow
     doubles as the vehicle for learning GitHub Actions itself — no prior
     CI/CD experience is assumed.
-  - API automation (Sprint 6) — a lightweight requests.Session client,
-    auth coverage, and a handful of CRUD/negative-path tests. Target API
-    and auth mechanism are locked at the start of the sprint.
-  - DB validation (Sprint 7) — a thin helper layer (select / insert-update
-    verification / state checks), used mainly to confirm API-driven effects.
-    SQLite is the working default; engine choice is locked at the start of
-    the sprint.
+  - API automation (API Automation (Light) story) — a lightweight
+    requests.Session client, auth coverage, and a handful of CRUD/
+    negative-path tests. Target API and auth mechanism are locked before
+    the fixture work begins.
+  - DB validation (DB Validation (Light) & Stabilization story) — a thin
+    helper layer (select / insert-update verification / state checks),
+    used mainly to confirm API-driven effects. SQLite is the working
+    default; engine choice is locked before the helper layer is built.
 
 FLAKY TEST DETECTOR SPECIFICATION
 --------------------------------------------------------------------------------
@@ -277,20 +286,18 @@ Topics covered
     scoring & conflict handling · threshold policies & gate semantics ·
     artifact publishing & traceability · non-blocking AI summarization
 
-SPRINT PLAN
+KANBAN BOARD (TestForgeWorks)
 --------------------------------------------------------------------------------
-Full task-by-task breakdown with story points lives in
-resource/tracking/sprints/, one file per sprint, formatted for direct
-import into JIRA:
+Full task-by-task breakdown lives in resource/tracking/testforgeworks/,
+organized as Feature -> Story -> Task, formatted for direct import into
+JIRA (Summary / Description / Original Estimate per Task):
 
-    sprint-1-pytest-foundation.txt
-    sprint-2-pom-plugin-flakiness.txt
-    sprint-3-github-actions-history.txt
-    sprint-4-detector-normalize-classify.txt
-    sprint-5-detector-impact-report-cli-gate.txt
-    sprint-6-api-automation-light.txt
-    sprint-7-db-validation-light.txt
-    sprint-8-hardening-showcase.txt
+    current.txt   everything currently in flight (Sprint 1 scope)
+    backlog.txt   unscheduled work, pulled onto current.txt deliberately
+
+Superseded per-sprint breakdown files (sprint-1..8-*.txt) have been moved to
+resource/tracking/testforgeworks/archive/ for historical reference and can
+be deleted once the Kanban migration is fully trusted.
 
 DELIVERABLES
 --------------------------------------------------------------------------------

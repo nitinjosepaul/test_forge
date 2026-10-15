@@ -1,0 +1,73 @@
+SPRINT 1 — FLAKY DETECTOR FOUNDATION (REVISED post-demo, Sept 22)
+Duration: Sep 21 - Oct 4 (2 weeks) | Target: demoable by Oct 5
+
+MILESTONES
+- Sep 28: streamlined end-to-end workflow checkpoint — normalize -> classify
+  -> impact wired together and runnable against synthetic report history,
+  even if rough. This is a mid-sprint checkpoint, not the final deliverable.
+- Oct 4/5: Sprint 1 close + demo-ready checkpoint — polished enough to
+  present, coordinated with Prakash.
+
+SHORT DESCRIPTION
+Revised from the original "minimal pytest foundation" sprint. Based on
+Sept 22 demo feedback, Sprint 1 now focuses entirely on proving the flaky
+detector end-to-end on synthetic data first — pytest/plugin scaffolding
+(pyproject.toml, plugins/ folders, core/ promotion) is deferred to
+backlog.txt and picked up in a later sprint once the detector logic itself
+is proven.
+
+COMPLETED (Sep 21-22, carried in from the pre-Sprint-1 demo stepping stone)
+1. [done] Bare-skeleton Selenium + Pytest suite at repo root (base/, pages/,
+   workflows/, utilities/, tests/, configfiles/)
+2. [done] Singleton-style LogManager (utilities/logger.py) with per-test
+   file handler add/remove lifecycle
+3. [done] tests/synthetic/ — 30 pure-Python tests (test_stable/test_suspect/
+   test_flaky) with controlled randomness, no browser dependency
+4. [done] tests/synthetic/run_multiple.ps1 — local runner generating
+   timestamped JUnit XML reports
+5. [done] framework/normalize.py (Stage 1) — TestRunRecord + ReportNormalizer,
+   validated against real generated report history
+6. [done] Repo restructure — AD legacy archived, flaky_demo_suite/* promoted
+   to repo root, tracking/ folder consolidated (demo/sprints/status)
+7. [done] Progress-check demo delivered (Sep 22) — see
+   resource/tracking/demo/[2026.09.22] Demo1/
+
+REMAINING TASKS (targeting Sep 28 workflow checkpoint -> Oct 5 demo)
+1. [3 pts] framework/classify.py — FeatureExtractor + RuleEngine (Stage 2)
+   - Build TestFeatures per test_id: fail_rate, signature_count,
+     recent_fail_streak (rerun_recovery_rate deferred - no rerun data yet)
+   - Deterministic threshold rules -> Stable/Suspect/Flaky classification
+     with confidence + reasons
+   - Validate against the existing synthetic report history
+
+2. [2 pts] framework/impact.py — ImpactEvaluator (Stage 3)
+   - Suite-level flakiness_score and PASS/WARN/FAIL gate from
+     classifications
+   - Validate the gate flips correctly across a few different synthetic
+     report batches
+
+3. [2 pts] framework/demo_run.py — minimal orchestration script (Stage 5,
+   lightweight version, not the full Sprint 5 cli.py)
+   - Chain normalize -> classify -> impact -> print ranked test table +
+     suite summary
+   - This is the Sep 28 checkpoint deliverable: a streamlined, working
+     end-to-end pass, even if rough around the edges
+
+4. [1 pt] tests/conftest.py — per-test-case logging hook
+   (pytest_runtest_makereport hookwrapper)
+   - Log outcome/duration/failure per test, not just session-level
+
+5. [1 pt] Demo1 action item: compare 3-4 existing test-flakiness platforms
+   (Buildpulse, Testdino, + 1-2 more) in an Excel table — capture features
+   worth incorporating into our framework's design
+
+6. [1 pt] Demo1 action item: complete the first demonstrable version of the
+   flaky-test detector (XML parsing through classification/impact) and
+   coordinate the demo date with Prakash
+   - This is the Oct 5 Sprint 1 close deliverable
+
+BACKLOG
+   Everything else (pytest/plugin scaffolding, log_manager promotion,
+   rerun-plugin decision, real+engineered flakiness design, and the full
+   former Sprint 2-8 task breakdowns) lives in backlog.txt and is pulled
+   into a sprint deliberately, not pre-assigned.

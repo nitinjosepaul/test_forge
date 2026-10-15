@@ -1,0 +1,4 @@
+1. Compare three or four existing test-flakiness platforms and record their relevant features in an Excel table to identify capabilities that can be incorporated into the proposed framework.
+    > Buildpulse
+    > Testdino
+2. Complete the first demonstrable version of the flaky-test detector, including XML report parsing, and coordinate the demonstration date with Prakash.

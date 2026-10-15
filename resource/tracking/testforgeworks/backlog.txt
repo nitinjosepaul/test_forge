@@ -1,0 +1,371 @@
+================================================================================
+BACKLOG — TestForgeWorks (Kanban)
+================================================================================
+Unscheduled work, organized as Feature -> Story -> Task so it maps directly
+onto the Kanban board:
+
+    Feature   broad product area (e.g. "Flaky Test Detector")
+    Story     a slice of work within a Feature (e.g. "Flaky Detector
+              Foundation")
+    Task      a concrete unit of work sized to 1-2 days. Anything bigger
+              is split into multiple 1-2 day Tasks rather than left as one.
+
+Nothing here is pre-assigned to a sprint; Tasks are pulled onto current.txt
+deliberately as work progresses. Open Tasks are written in JIRA-import-ready
+format:
+
+    Summary: <one liner>
+    Description: <as much detail as useful>
+    Original Estimate: <1d|2d|TBD>
+
+================================================================================
+FEATURE: Flaky Test Detector
+================================================================================
+
+--------------------------------------------------------------------------------
+STORY: GitHub Actions History Generation
+--------------------------------------------------------------------------------
+Learn GitHub Actions from scratch (no prior experience assumed) and build a
+matrix-strategy workflow that runs the selenium_pom suite 15-20 times to
+generate real historical JUnit XML data for the flaky detector to consume.
+
+  Summary: Learn GitHub Actions fundamentals
+  Description: Cover triggers, jobs/steps, artifacts, matrix strategy. Treat
+  this as genuinely new material, not assumed knowledge. Build a trivial
+  "hello world" workflow first to confirm basics before the real one.
+  Original Estimate: 2d
+
+  Summary: Build generate-history.yml matrix job (N=15-20 runs)
+  Description: Each matrix job runs `pytest plugins/selenium_pom/tests`
+  once and uploads its own junit-<run>.xml artifact.
+  Original Estimate: 2d
+
+  Summary: Configure workflow_dispatch trigger and tune matrix run count
+  Description: Trigger via workflow_dispatch for controlled, repeatable
+  runs. Tune and confirm the matrix runs 15-20 times as intended.
+  Original Estimate: 2d
+
+  Summary: Polish generate-history.yml and handle edge cases
+  Description: Iterate on the matrix workflow, handling flaky CI runners,
+  partial artifact uploads, and any other rough edges found while testing.
+  Original Estimate: 1d
+
+  Summary: Add aggregation job downloading matrix artifacts
+  Description: Add a job (depends on the matrix job completing) that
+  downloads all matrix artifacts into artifacts/pytest-runs/.
+  Original Estimate: 2d
+
+  Summary: Commit aggregated results and validate folder structure
+  Description: Bundle/commit results so the detector can consume them
+  later. Confirm the aggregated folder structure matches what
+  framework.normalize will expect.
+  Original Estimate: 1d
+
+  Summary: Trigger workflow and validate real JUnit report history
+  Description: Validate 15-20 real JUnit reports with a mix of stable/
+  flaky signal. Spot-check that engineered and real flaky tests actually
+  show variation across runs.
+  Original Estimate: 1d
+
+--------------------------------------------------------------------------------
+STORY: Detector on Real History
+--------------------------------------------------------------------------------
+Build the ingestion and classification core of the flaky detector against
+real historical JUnit data (once generated), moving beyond synthetic data.
+
+  Summary: Run normalize.py against real downloaded history and fix issues
+  Description: framework/normalize.py (ReportNormalizer, TestRunRecord) was
+  already built and validated during the Sprint 1 revision against
+  synthetic data. Re-run it against the real downloaded GitHub Actions
+  history and fix any parsing/normalization issues (test IDs, statuses,
+  timestamps, failure signatures) that only show up with real data.
+  Original Estimate: 2d
+
+  Summary: Validate normalize.py against malformed/partial real reports
+  Description: Add/verify handling for malformed or partial reports found
+  in the real history, on top of the base re-validation above.
+  Original Estimate: 1d
+
+  Summary: Implement FeatureExtractor fail rate/rerun/signature features
+  Description: Compute fail rate, rerun recovery, signature count, and
+  streak/trend against the real accumulated history.
+  Original Estimate: 2d
+
+  Summary: Handle FeatureExtractor edge cases against real history
+  Description: Handle edge cases such as all-passed test, single-failure
+  test, and sparse history in the real accumulated data.
+  Original Estimate: 1d
+
+  Summary: Define RuleEngine threshold policy with concrete default values
+  Description: Define concrete default threshold values (not just abstract
+  rules) for Stable/Suspect/Flaky classification.
+  Original Estimate: 2d
+
+  Summary: Implement RuleEngine deterministic classification rules
+  Description: Apply the deterministic Stable/Suspect/Flaky rules using the
+  threshold policy above.
+  Original Estimate: 2d
+
+  Summary: Add RuleEngine reasons output and validate against real history
+  Description: Return human-readable reasons alongside each classification
+  label; validate the full RuleEngine output against the real accumulated
+  history.
+  Original Estimate: 1d
+
+--------------------------------------------------------------------------------
+STORY: Reporting, CLI & CI Gate
+--------------------------------------------------------------------------------
+Complete the flaky detector pipeline: roll up per-test classifications into
+a suite-level gate decision, generate human/machine-readable reports, wrap
+it all in a single CLI, and wire it into a GitHub Actions workflow that
+enforces the gate.
+
+  Summary: Implement SuiteImpact score rollup in framework/impact.py
+  Description: Roll up per-test labels into a suite-level flakiness score
+  (full real-history version, building on the lightweight Sprint 1
+  checkpoint version).
+  Original Estimate: 2d
+
+  Summary: Map SuiteImpact score to PASS/WARN/FAIL gate outcome
+  Description: Map the suite-level score to a gate outcome with a
+  human-readable rationale, and validate against real history batches.
+  Original Estimate: 1d
+
+  Summary: Implement JSON/CSV ranked table in framework/reporting.py
+  Description: Produce a ranked per-test table in both JSON and CSV,
+  keeping the output easy to inspect manually and in CI.
+  Original Estimate: 2d
+
+  Summary: Add suite summary block and polish reporting output
+  Description: Produce a suite summary block alongside the ranked table
+  and polish overall report readability.
+  Original Estimate: 1d
+
+  Summary: Implement framework/cli.py single command pipeline
+  Description: One entry point chaining normalize -> classify -> impact ->
+  report, with simple flags (--history-dir, --last-n).
+  Original Estimate: 2d
+
+  Summary: Add flaky-gate.yml CI workflow
+  Description: Run the CLI against accumulated history and enforce the
+  gate in CI. Fail or warn the workflow based on the gate outcome. Add a
+  simple job summary output for readability.
+  Original Estimate: 2d
+
+================================================================================
+FEATURE: Test Automation Plugins
+================================================================================
+
+--------------------------------------------------------------------------------
+STORY: Selenium Plugin Conversion & Flakiness Design
+--------------------------------------------------------------------------------
+Convert the existing Selenium Page Object Model code into the first (and
+only, for now) plugin: plugins/selenium_pom. Then deliberately design both
+real and engineered flakiness into it so the detector has meaningful signal
+to work with later.
+
+  Summary: Move POM code into plugins/selenium_pom and fix imports
+  Description: Move resource/page_object_model/{base,pages,workflows,tests}
+  into plugins/selenium_pom/. Fix all import paths for the new location.
+  Original Estimate: 2d
+
+  Summary: Add plugin-local conftest.py and verify POM tests pass
+  Description: Add a plugin-local conftest.py (driver fixture, browser
+  option). Verify all existing POM tests still pass after the move.
+  Original Estimate: 1d
+
+  Summary: Repoint plugin utilities to core LogManager
+  Description: Repoint utilities/{test_status.py,screenshot.py} to use core
+  LogManager (core.util.log_manager) instead of a local logger.py, and drop
+  the plugin's own logger.py.
+  Original Estimate: 2d
+
+  Summary: Confirm clean plugin suite pass after LogManager repoint
+  Description: Confirm no plugin code still references the old
+  resource/page_object_model path. Run the full plugin suite locally to
+  confirm a clean pass.
+  Original Estimate: 1d
+
+  Summary: Add 2-3 engineered flaky dummy tests
+  Description: Use controlled randomness or sleep-based race conditions.
+  Clearly comment each one as intentionally engineered. Aim for a mix that
+  will plausibly land in different flaky bands (Stable/Suspect/Flaky).
+  Original Estimate: 2d
+
+  Summary: Adjust 1-2 real Selenium steps to be genuinely timing-sensitive
+  Description: Leave or loosen a wait so intermittent real failures can
+  occur. Document why each one is expected to be flaky.
+  Original Estimate: 2d
+
+  Summary: Design real + engineered flakiness mix for selenium_pom suite
+  Description: Deferred until the plugin conversion work above lands.
+  tests/synthetic/ already covers the engineered side for now; this task
+  is specifically about designing the Selenium-side mix (1-2 genuinely
+  timing-sensitive steps + engineered randomness).
+  Original Estimate: TBD
+
+--------------------------------------------------------------------------------
+STORY: API Automation (Light)
+--------------------------------------------------------------------------------
+Add a small, practical API automation plugin. Kept deliberately light since
+API testing is a newer skill area — focus on a clean reusable client
+fixture, auth coverage, and a handful of well-chosen CRUD/negative-path
+tests rather than broad coverage.
+
+  Summary: Lock the target API and auth mechanism
+  Description: Decide on a public sandbox API or a simple local mock, and
+  note the decision.
+  Original Estimate: 1d
+
+  Summary: Build api_plugin base URL/headers/auth token handling
+  Description: Standardize base URL, headers, and auth token handling in a
+  reusable requests.Session-based fixture.
+  Original Estimate: 2d
+
+  Summary: Finalize api_plugin fixture teardown behavior
+  Description: Implement and confirm teardown behavior for the
+  requests.Session fixture.
+  Original Estimate: 1d
+
+  Summary: Cover login/token acquisition flow
+  Description: Add auth coverage for the login/token acquisition flow or
+  the equivalent flow for the chosen API.
+  Original Estimate: 2d
+
+  Summary: Add reusable response/header assertion helpers
+  Description: Add small, reusable assertion helpers for status/headers/
+  payload shape.
+  Original Estimate: 1d
+
+  Summary: Implement CRUD tests for one API surface
+  Description: Cover one API surface end-to-end with CRUD tests.
+  Original Estimate: 2d
+
+  Summary: Add invalid-input and unauthorized-path negative tests
+  Description: Include at least one invalid-input and one unauthorized-path
+  case for the same API surface.
+  Original Estimate: 1d
+
+--------------------------------------------------------------------------------
+STORY: DB Validation (Light) & Stabilization
+--------------------------------------------------------------------------------
+Add a small DB validation layer (kept intentionally light since DB is a
+newer skill area) to confirm API-driven effects at the data layer, then use
+remaining time to stabilize plugin boundaries and fixtures across all three
+plugins built so far.
+
+  Summary: Lock the DB engine choice (SQLite recommended)
+  Description: Decide and document the choice before writing helpers.
+  Original Estimate: 1d
+
+  Summary: Implement select/insert/update DB helper methods
+  Description: Build the core select/insert/update verification helpers.
+  Keep it targeted — no ORM, no heavy abstraction.
+  Original Estimate: 2d
+
+  Summary: Implement row-count/state check DB helpers
+  Description: Add row-count and state-check helper methods on top of the
+  select/insert/update layer.
+  Original Estimate: 2d
+
+  Summary: Validate DB helper layer against sample scenarios
+  Description: Exercise the DB helper layer against a few sample scenarios
+  to confirm correctness before using it in real tests.
+  Original Estimate: 1d
+
+  Summary: Implement first API-to-DB verification flow test
+  Description: Confirm a DB-visible effect after an API-driven action
+  (first flow).
+  Original Estimate: 2d
+
+  Summary: Implement second API-to-DB verification flow test
+  Description: Confirm a DB-visible effect after an API-driven action
+  (second flow), and clean up shared helpers as needed.
+  Original Estimate: 1d
+
+  Summary: Stabilize plugin boundaries, fixtures, and config across plugins
+  Description: Clean up any duplicated logic or inconsistent fixture
+  behavior found while adding the last two plugins (selenium_pom,
+  api_plugin, db_validation).
+  Original Estimate: 2d
+
+================================================================================
+FEATURE: Framework Foundation & Release
+================================================================================
+
+--------------------------------------------------------------------------------
+STORY: Pytest Framework Formalization
+--------------------------------------------------------------------------------
+
+  Summary: Set up pyproject.toml/pytest.ini and root conftest.py
+  Description: Define shared fixtures usable by any future plugin (run_id,
+  artifact dir, session logger). Set --junitxml output convention and
+  artifact folder path. Deferred from original Sprint 1 scope on Sep 21;
+  keep intentionally minimal — just enough to run something real.
+  Original Estimate: TBD
+
+  Summary: Exclude resource/archive/ (legacy AD code) from pytest discovery
+  Description: Configure testpaths so only active test folders are
+  collected. Confirm archived AD tests (e.g. UNIT_TEST.py) never collect or
+  run. Leave the archived code in place — no migration. Deferred from
+  original Sprint 1 scope.
+  Original Estimate: TBD
+
+  Summary: Smoke-test pytest discovery and JUnit artifact output
+  Description: "Does the skeleton actually work" checkpoint after the
+  pyproject/conftest setup: run a trivial test, confirm JUnit XML lands in
+  the expected artifact location, and confirm resource/archive/ does not
+  appear in collection. Deferred from original Sprint 1 scope.
+  Original Estimate: TBD
+
+  Summary: Create empty plugin skeleton folders
+  Description: Scaffold plugins/selenium_pom, plugins/api_plugin (later),
+  plugins/db_validation (later). Scaffolding only, no logic — revisit once
+  the detector itself is proven.
+  Original Estimate: TBD
+
+  Summary: Promote LogManager into core/util/log_manager.py
+  Description: Move utilities/logger.py (LogManager) into its final
+  core/util/log_manager.py location, retiring library/util/log.py. Preserve
+  the console/file handler add/remove lifecycle and confirm it works from a
+  pytest fixture with no Tkinter coupling. Current location works fine for
+  the detector-first approach, so this is not urgent.
+  Original Estimate: TBD
+
+  Summary: Decide on adopting pytest-rerunfailures for rerun_recovery_rate
+  Description: Currently rerun_index is None for all records. Needs
+  empirical verification of how the pytest-rerunfailures plugin shapes
+  JUnit XML output before parsing logic can be written. Decision blocks
+  rerun_recovery_rate as a usable feature.
+  Original Estimate: TBD
+
+--------------------------------------------------------------------------------
+STORY: Hardening, Polish & Showcase
+--------------------------------------------------------------------------------
+Final story: add the last reporting polish (HTML output, optional AI
+summary), absorb any spillover from earlier work, and package the whole POC
+into interview-ready documentation and a demo script.
+
+  Summary: Add HTML report output to framework/reporting.py
+  Description: Only once JSON/CSV output is already stable.
+  Original Estimate: 2d
+
+  Summary: Add optional framework/ai_summary.py narrative layer
+  Description: Non-blocking narrative layer that summarizes deterministic
+  output in plain language; no gate authority.
+  Original Estimate: 2d
+
+  Summary: Reserve buffer for spillover from earlier work
+  Description: Use this explicitly as slack, not new scope, if earlier
+  work ran long.
+  Original Estimate: 2d
+
+  Summary: Polish README, architecture diagram, and plugin guide
+  Description: Document the plugin model and the key decisions made along
+  the way.
+  Original Estimate: 2d
+
+  Summary: Prepare a short demo script and interview narrative
+  Description: Walk through: real repo -> plugin -> real/engineered
+  flakiness -> GitHub Actions history -> detector output -> CI gate.
+  Original Estimate: 2d

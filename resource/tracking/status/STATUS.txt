@@ -11,13 +11,13 @@ CURRENT PHASE
 --------------------------------------------------------------------------------
 Pre-Sprint-1 "demo stepping stone" — a deliberately temporary, self-contained
 proof that the flaky detector's core idea works end-to-end, built to create
-early momentum ahead of a progress-check demo (2026-09-21). The 8-sprint plan
-(resource/tracking/sprints/) has NOT started yet.
+early momentum ahead of a progress-check demo (2026-09-21). The Kanban board
+(resource/tracking/testforgeworks/current.txt) has NOT started yet.
 
 COMPLETED
 --------------------------------------------------------------------------------
 - [x] Bare-skeleton Selenium + Pytest suite (Page Object Model layout) at the
-      repo root: base/, pages/, workflows/, utilities/, tests/, configfiles/
+      repo root: base/, pages/, workflows/, utilities/, tests/, config/
 - [x] Singleton-style LogManager (utilities/logger.py) — one shared logger
       instance per test run, per-test file handlers addable/removable
 - [x] tests/synthetic/ — 30 pure-Python tests (stable/suspect/flaky), no
@@ -44,8 +44,8 @@ NOT STARTED
 - [ ] framework/impact.py (detector Stage 3 — ImpactEvaluator)
 - [ ] framework/demo_run.py (Stage 5 — minimal orchestration script)
 - [ ] Decision: adopt pytest-rerunfailures for real rerun_recovery_rate data
-- [ ] Sprint 1 — Minimal pytest foundation (see resource/tracking/sprints/)
-- [ ] Sprints 2-8 (see resource/tracking/sprints/)
+- [ ] Current Kanban board (see resource/tracking/testforgeworks/current.txt)
+- [ ] Backlog (see resource/tracking/testforgeworks/backlog.txt)
 
 NEXT UP
 --------------------------------------------------------------------------------

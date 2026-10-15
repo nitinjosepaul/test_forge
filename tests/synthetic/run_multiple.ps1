@@ -37,7 +37,7 @@ for ($i = 1; $i -le $Runs; $i++) {
     $timestamp = Get-Date -Format "yyyyMMdd_HHmmss_fff"
     $reportPath = Join-Path $reportDir "run_$timestamp.xml"
     Write-Host "=== Run $i of $Runs ==="
-    pytest "$testDir" --junitxml="$reportPath" -q
+    pytest "$testDir" --junitxml="$reportPath" -o junit_suite_name="test_forge" -q
 }
 
 Write-Host ""
