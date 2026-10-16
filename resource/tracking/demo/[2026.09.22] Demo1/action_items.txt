@@ -2,3 +2,4 @@
     > Buildpulse
     > Testdino
 2. Complete the first demonstrable version of the flaky-test detector, including XML report parsing, and coordinate the demonstration date with Prakash.
+3. Check if able to check-in changes from VS Code.
